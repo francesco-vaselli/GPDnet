@@ -1,4 +1,4 @@
-''' create pytorch_geometric dataset
+''' create pytorch_geometric dataset(s)
 '''
 import os.path as osp
 import numpy as np
@@ -11,7 +11,19 @@ from create_graph import create_graph, draw_graph
 
 
 class GPDdataset_full(Dataset):
+    """a PyTorch_geometric dataset for processing and accessing data 
+        creates a single file for event, selecting only events of energy (4, 8.9)keV
+        from the full list of simulations at my disposal
+    """    
     def __init__(self, root, transform=None, pre_transform=None):
+        """
+        :param root: data folder. it expects two subfolders: raw, to read data from, and processed, to save data to
+        :type root: path
+        :param transform: [description], defaults to None
+        :type transform: [type], optional
+        :param pre_transform: [description], defaults to None
+        :type pre_transform: [type], optional
+        """        
         super(GPDdataset_full, self).__init__(root, transform, pre_transform)
         # self.data, self.slices = torch.load(self.processed_paths[0])
 
@@ -30,6 +42,7 @@ class GPDdataset_full(Dataset):
     def download(self):
         pass
 
+    # if there is no processed file with specified name as above, process all fits files
     def process(self):
 
         raw_data_index = [0, 1, 10, 11, 12, 13, 14]
@@ -81,13 +94,16 @@ class GPDdataset_full(Dataset):
         data = torch.load(osp.join(self.processed_dir, 'data_{}.pt'.format(idx)))
         return data
 
+    # len has to be fixed manually after processing atm (orrible, I know)
     def len(self):
         return 513272
 
 
-class GPDataset(Dataset):
+class GPDdataset_single(Dataset):
+    '''same as above, but only processes one fits file and does not select the energy bin
+    '''
     def __init__(self, root, transform=None, pre_transform=None):
-        super(GPDataset, self).__init__(root, transform, pre_transform)
+        super(GPDdataset_single, self).__init__(root, transform, pre_transform)
         # self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
@@ -110,8 +126,6 @@ class GPDataset(Dataset):
         pass
 
     def process(self):
-
-        # data_list = []
 
         hdu = fits.open(osp.join(self.raw_dir, 'flat_rnd0.fits'))
         events_data = hdu['EVENTS'].data
@@ -155,10 +169,6 @@ class GPDataset(Dataset):
             data = Data(x=x, edge_index=edge_index, y=y)
             torch.save(data, osp.join(self.processed_dir, 'data_{}.pt'.format(j)))
             j += 1
-            # data_list.append(data)
-
-        # data, slices = self.collate(data_list)
-        # torch.save((data, slices), self.processed_paths[0])
 
     def get(self, idx):
         data = torch.load(osp.join(self.processed_dir, 'data_{}.pt'.format(idx)))
@@ -172,12 +182,12 @@ class GPDataset(Dataset):
 if __name__ == '__main__':
 
     dataset = GPDdataset_full('data/')
-    '''
+    
     print(f'Dataset: {dataset}:')
     print('====================')
     print(f'Number of graphs: {len(dataset)}')
     print(f'Number of features: {dataset.num_features}')
-    # print(f'Number of classes: {dataset.num_classes}')
+    print(f'Number of classes: {dataset.num_classes}')
 
     data = dataset[123]  # Get the first graph object.
 
@@ -194,4 +204,4 @@ if __name__ == '__main__':
     
     G = utils.to_networkx(data)
     draw_graph(G)
-    '''
+    
